@@ -35,11 +35,18 @@ def image_quer_machen(pfad):
     resized = img_new.resize((1920, int(1920 / new_w * h)))
     resized.save(pfad.rsplit('.', 1)[0] + '_quer.jpg')
 
-def image_aufhellen(pfad, faktor=1.7):
-    img = Image.open(pfad)
-    enhancer = ImageEnhance.Color(img)
-    result = enhancer.enhance(faktor)
-    output = pfad.rsplit('.', 1)[0] + '_aufgehellt.jpg'
+def image_aufhellen(pfad, helligkeit=1.2, saettigung=1.1):
+    img = Image.open(pfad).convert("RGB")
+
+    # Erst Farbsättigung erhöhen
+    color_enhancer = ImageEnhance.Color(img)
+    img = color_enhancer.enhance(saettigung)
+
+    # Dann Helligkeit erhöhen
+    brightness_enhancer = ImageEnhance.Brightness(img)
+    result = brightness_enhancer.enhance(helligkeit)
+
+    output = pfad.rsplit('.', 1)[0] + f'_aufgehellt.jpg'
     result.save(output)
     return output
 
@@ -65,7 +72,7 @@ def images_nebeneinanderstellen(pfade):
     final = combined.resize((1920, int(1920 / combined.size[0] * combined.size[1])))
     final.save(pfade[0].rsplit('.', 1)[0] + '_nebeneinander.jpg')
 
-def starte_konvertierung(pfade, jpg, quer, aufhellen, nebeneinander):
+def starte_konvertierung(pfade, jpg, quer, aufhellen, nebeneinander, helligkeit=1.2, saettigung=1.1):
     if not pfade:
         messagebox.showinfo('Fehler', 'Keine Bilder ausgewählt')
         return
@@ -77,7 +84,7 @@ def starte_konvertierung(pfade, jpg, quer, aufhellen, nebeneinander):
             if jpg:
                 pfad = convert_to_jpg(pfad)
             if aufhellen:
-                pfad = image_aufhellen(pfad)
+                pfad = image_aufhellen(pfad, helligkeit, saettigung)
             if quer:
                 image_quer_machen(pfad)
             neue_pfade.append(pfad)
@@ -105,10 +112,16 @@ def start_quermachen():
     zweck = var2.get()
     quer = zweck == 1
     nebeneinander = zweck == 2
-    starte_konvertierung(bildpfade, jpg, quer, aufhellen, nebeneinander)
+    try:
+        helligkeit = float(aufhellfaktor_var.get()) if aufhellen else 1.0
+        saettigung = float(saettigung_var.get()) if aufhellen else 1.0
+    except ValueError:
+        messagebox.showerror("Fehler", "Ungültige Werte für Helligkeit oder Sättigung")
+        return
+    starte_konvertierung(bildpfade, jpg, quer, aufhellen, nebeneinander, helligkeit, saettigung)
 
 def erstelle_gui():
-    global root, var1, var2, var3
+    global root, var1, var2, var3, aufhellfaktor_var, saettigung_var
 
     root = tk.Tk()
     root.title("Bilder-Konverter")
@@ -131,6 +144,14 @@ def erstelle_gui():
 
     tk.Button(root, text="Wähle Bilder aus", command=bilder_auswaehlen).place(relx=0.025, rely=0.5, relwidth=0.45, relheight=0.45)
     tk.Button(root, text="Start Konvertierung", command=start_quermachen).place(relx=0.525, rely=0.5, relwidth=0.45, relheight=0.45)
+
+    aufhellfaktor_var = tk.StringVar(value="1.5")
+    tk.Label(root, text="Helligkeit (z.B. 1.2)").place(relx=0.025, rely=0.25)
+    tk.Entry(root, textvariable=aufhellfaktor_var).place(relx=0.025, rely=0.3, relwidth=0.2)
+
+    saettigung_var = tk.StringVar(value="1.3")
+    tk.Label(root, text="Sättigung (z.B. 1.1)").place(relx=0.275, rely=0.25)
+    tk.Entry(root, textvariable=saettigung_var).place(relx=0.275, rely=0.3, relwidth=0.2)
 
     root.mainloop()
 
